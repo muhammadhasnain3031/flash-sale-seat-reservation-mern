@@ -19,7 +19,6 @@ class ReservationService {
       let resultHold;
 
       await session.withTransaction(async () => {
-        // Idempotency Check: sirf ACTIVE (non-expired) hold/confirmed ko count karo
         const existing = await Reservation.findOne({ email: normalizedEmail }).session(session);
 
         if (existing && isActive(existing)) {
@@ -27,12 +26,10 @@ class ReservationService {
           return;
         }
 
-        // Agar purana record hai lekin expired hai (TTL ne abhi tak delete nahi kiya), hata do
         if (existing && !isActive(existing)) {
           await Reservation.deleteOne({ _id: existing._id }).session(session);
         }
 
-        // Concurrency Lock: sirf ACTIVE records count karo (expired-but-not-yet-purged ko exclude karo)
         const currentActiveCount = await Reservation.countDocuments(
           {
             $or: [
@@ -46,7 +43,7 @@ class ReservationService {
         if (currentActiveCount >= TOTAL_SEATS_LIMIT) {
           const error = new Error("Sold out! All 30 seats are allocated.");
           error.statusCode = 400;
-          throw error; // Transaction abort aur rollback ho jayega
+          throw error;
         }
 
         const [newHold] = await Reservation.create(
@@ -64,7 +61,6 @@ class ReservationService {
       session.endSession();
 
       if (error.code === 11000) {
-        // Race condition: doosri request ne pehle hi seat bana li — thodi retry ke saath dhoondo
         let fallbackExisting = null;
         for (let i = 0; i < 5 && !fallbackExisting; i++) {
           fallbackExisting = await Reservation.findOne({ email: normalizedEmail });
@@ -85,6 +81,7 @@ class ReservationService {
       }
       throw error;
     }
+  } // ← YE MISSING BRACE THA (reserve() method close karta hai)
 
   // 2. POST /api/confirm
   async confirm(holdId) {
@@ -106,7 +103,6 @@ class ReservationService {
       return { success: true, message: "Seat already confirmed.", holdId: reservation._id };
     }
 
-    // Explicit expiry check — TTL delete hone ka wait nahi karna
     if (reservation.status === "held" && reservation.expiresAt < new Date()) {
       const error = new Error("Confirming an expired hold failed.");
       error.statusCode = 400;
