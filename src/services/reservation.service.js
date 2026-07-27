@@ -64,7 +64,7 @@ class ReservationService {
         let fallbackExisting = null;
         for (let i = 0; i < 5 && !fallbackExisting; i++) {
           fallbackExisting = await Reservation.findOne({ email: normalizedEmail });
-          if (!fallbackExisting) await new Promise((r) => setTimeout(r, 100));
+          if (!fallbackExisting) await new Promise((r) => setTimeout(r, 200));
         }
 
         if (!fallbackExisting) {
