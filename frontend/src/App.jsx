@@ -16,27 +16,6 @@ export default function App() {
   const timerRef = useRef(null);
   const submittingRef = useRef(false);
 
-const handleReserve = async (e) => {
-  e.preventDefault();
-  if (submittingRef.current) return;   // ← guard
-  submittingRef.current = true;
-
-  setError("");
-  setMessage("");
-  setLoading(true);
-
-  try {
-    const res = await API.post(`/reserve`, { email });
-    setHoldData(res.data);
-    setMessage("Seat held successfully! Confirm your seat within 2 minutes.");
-  } catch (err) {
-    setError(err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || "Reservation failed.");
-  } finally {
-    setLoading(false);
-    submittingRef.current = false;      // ← reset
-  }
-};
-
   // 1. Live seat counter poll loop (Har 3 seconds baad)
   useEffect(() => {
     const fetchStatus = async () => {
@@ -48,7 +27,7 @@ const handleReserve = async (e) => {
       }
     };
 
-    fetchStatus(); // First load execution
+    fetchStatus();
     const interval = setInterval(fetchStatus, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -79,18 +58,22 @@ const handleReserve = async (e) => {
   // 3. POST /api/reserve Trigger handler
   const handleReserve = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
     setError("");
     setMessage("");
     setLoading(true);
 
     try {
       const res = await API.post(`/reserve`, { email });
-      setHoldData(res.data); // holds { holdId, expiresAt }
+      setHoldData(res.data);
       setMessage("Seat held successfully! Confirm your seat within 2 minutes.");
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || "Reservation failed.");
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
@@ -103,7 +86,7 @@ const handleReserve = async (e) => {
     try {
       const res = await API.post(`/confirm`, { holdId: holdData.holdId });
       setMessage(res.data.message || "Seat confirmed successfully!");
-      setHoldData(null); // Clear hold form elements state
+      setHoldData(null);
       setTimeLeft(0);
       setEmail("");
     } catch (err) {
@@ -113,7 +96,6 @@ const handleReserve = async (e) => {
     }
   };
 
-  // Seconds format converter helper (MM:SS)
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -124,18 +106,15 @@ const handleReserve = async (e) => {
     <div style={{ maxWidth: "500px", margin: "50px auto", padding: "20px", fontFamily: "sans-serif", border: "1px solid #ccc", borderRadius: "8px" }}>
       <h2>Concert X Ticket Flash Sale</h2>
 
-      {/* Dynamic Status Counter Component Display metrics */}
       <div style={{ display: "flex", justifyContent: "space-between", background: "#f0f0f0", padding: "10px", borderRadius: "5px", marginBottom: "20px" }}>
         <div><strong>Available:</strong> {status.available}</div>
         <div><strong>Held:</strong> {status.held}</div>
         <div><strong>Confirmed:</strong> {status.confirmed}</div>
       </div>
 
-      {/* Alert states notification wrappers */}
       {error && <div style={{ color: "red", background: "#fee2e2", padding: "10px", borderRadius: "5px", marginBottom: "15px" }}>{error}</div>}
       {message && <div style={{ color: "green", background: "#dcfce7", padding: "10px", borderRadius: "5px", marginBottom: "15px" }}>{message}</div>}
 
-      {/* Reservation Form Input element conditional controls wrapper */}
       {!holdData ? (
         <form onSubmit={handleReserve}>
           <div style={{ marginBottom: "10px" }}>
@@ -154,7 +133,6 @@ const handleReserve = async (e) => {
           </button>
         </form>
       ) : (
-        /* Confirmation Mode State Control Window */
         <div style={{ background: "#eff6ff", padding: "15px", borderRadius: "5px", textAlign: "center" }}>
           <h3 style={{ margin: "0 0 10px 0", color: "#1e40af" }}>Seat Held Securely</h3>
           <p style={{ fontSize: "24px", fontWeight: "bold", margin: "10px 0" }}>Time Left: {formatTime(timeLeft)}</p>
@@ -165,4 +143,4 @@ const handleReserve = async (e) => {
       )}
     </div>
   );
-};
+}
