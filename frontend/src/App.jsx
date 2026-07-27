@@ -14,6 +14,28 @@ export default function App() {
   const [loading, setLoading] = useState(false);
 
   const timerRef = useRef(null);
+  const submittingRef = useRef(false);
+
+const handleReserve = async (e) => {
+  e.preventDefault();
+  if (submittingRef.current) return;   // ← guard
+  submittingRef.current = true;
+
+  setError("");
+  setMessage("");
+  setLoading(true);
+
+  try {
+    const res = await API.post(`/reserve`, { email });
+    setHoldData(res.data);
+    setMessage("Seat held successfully! Confirm your seat within 2 minutes.");
+  } catch (err) {
+    setError(err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || "Reservation failed.");
+  } finally {
+    setLoading(false);
+    submittingRef.current = false;      // ← reset
+  }
+};
 
   // 1. Live seat counter poll loop (Har 3 seconds baad)
   useEffect(() => {

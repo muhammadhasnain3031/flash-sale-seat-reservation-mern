@@ -64,16 +64,27 @@ class ReservationService {
       session.endSession();
 
       if (error.code === 11000) {
-        const fallbackExisting = await Reservation.findOne({ email: normalizedEmail });
+        // Race condition: doosri request ne pehle hi seat bana li — thodi retry ke saath dhoondo
+        let fallbackExisting = null;
+        for (let i = 0; i < 5 && !fallbackExisting; i++) {
+          fallbackExisting = await Reservation.findOne({ email: normalizedEmail });
+          if (!fallbackExisting) await new Promise((r) => setTimeout(r, 100));
+        }
+
+        if (!fallbackExisting) {
+          const err = new Error("Reservation conflict, please try again.");
+          err.statusCode = 409;
+          throw err;
+        }
+
         return {
           isNew: false,
-          holdId: fallbackExisting?._id,
-          expiresAt: fallbackExisting?.expiresAt,
+          holdId: fallbackExisting._id,
+          expiresAt: fallbackExisting.expiresAt,
         };
       }
       throw error;
     }
-  }
 
   // 2. POST /api/confirm
   async confirm(holdId) {
