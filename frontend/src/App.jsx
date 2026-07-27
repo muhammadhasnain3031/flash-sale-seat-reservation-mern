@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 // Apne backend ka deployed ya local URL yahan likhein
-const API_BASE_URL = "http://localhost:5000/api"; 
+const API = axios.create({ baseURL: `${import.meta.env.VITE_API_URL}/api` });
 
 export default function App() {
   const [status, setStatus] = useState({ totalSeats: 30, confirmed: 0, held: 0, available: 30 });
@@ -19,7 +19,7 @@ export default function App() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/status`);
+        const res = await API.get(`/status`);
         setStatus(res.data);
       } catch (err) {
         console.error("Status check failed", err);
@@ -62,7 +62,7 @@ export default function App() {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/reserve`, { email });
+      const res = await API.post(`/reserve`, { email });
       setHoldData(res.data); // holds { holdId, expiresAt }
       setMessage("Seat held successfully! Confirm your seat within 2 minutes.");
     } catch (err) {
@@ -79,7 +79,7 @@ export default function App() {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/confirm`, { holdId: holdData.holdId });
+      const res = await API.post(`/confirm`, { holdId: holdData.holdId });
       setMessage(res.data.message || "Seat confirmed successfully!");
       setHoldData(null); // Clear hold form elements state
       setTimeLeft(0);
@@ -101,7 +101,7 @@ export default function App() {
   return (
     <div style={{ maxWidth: "500px", margin: "50px auto", padding: "20px", fontFamily: "sans-serif", border: "1px solid #ccc", borderRadius: "8px" }}>
       <h2>Concert X Ticket Flash Sale</h2>
-      
+
       {/* Dynamic Status Counter Component Display metrics */}
       <div style={{ display: "flex", justifyContent: "space-between", background: "#f0f0f0", padding: "10px", borderRadius: "5px", marginBottom: "20px" }}>
         <div><strong>Available:</strong> {status.available}</div>
@@ -118,11 +118,11 @@ export default function App() {
         <form onSubmit={handleReserve}>
           <div style={{ marginBottom: "10px" }}>
             <label>Email Address:</label>
-            <input 
-              type="email" 
-              required 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               style={{ width: "100%", padding: "8px", marginTop: "5px", boxSizing: "border-box" }}
               placeholder="user@example.com"
             />
@@ -143,4 +143,4 @@ export default function App() {
       )}
     </div>
   );
-}
+};
