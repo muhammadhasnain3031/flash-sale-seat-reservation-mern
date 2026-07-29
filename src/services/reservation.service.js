@@ -22,9 +22,14 @@ class ReservationService {
         const existing = await Reservation.findOne({ email: normalizedEmail }).session(session);
 
         if (existing && isActive(existing)) {
-          resultHold = { isNew: false, holdId: existing._id, expiresAt: existing.expiresAt };
-          return;
-        }
+  if (existing.status === "confirmed") {
+    const error = new Error("This email already has a confirmed seat.");
+    error.statusCode = 409;
+    throw error;
+  }
+  resultHold = { isNew: false, holdId: existing._id, expiresAt: existing.expiresAt };
+  return;
+}
 
         if (existing && !isActive(existing)) {
           await Reservation.deleteOne({ _id: existing._id }).session(session);
