@@ -95,7 +95,7 @@ export default function App() {
       setTimeLeft(0);
       setEmail("");
     } catch (err) {
-      setError(err.response?.data?.error || "Confirmation failed.");
+      setError(err.response?.data?.message || err.response?.data?.error || "Confirmation failed.");
     } finally {
       setLoading(false);
     }
