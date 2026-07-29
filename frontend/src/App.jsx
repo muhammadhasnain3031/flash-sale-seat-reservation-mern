@@ -70,7 +70,12 @@ export default function App() {
       setHoldData(res.data);
       setMessage("Seat held successfully! Confirm your seat within 2 minutes.");
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || "Reservation failed.");
+      setError(
+  err.response?.data?.error ||
+  err.response?.data?.message ||
+  err.response?.data?.errors?.[0]?.msg ||
+  "Reservation failed."
+);
     } finally {
       setLoading(false);
       submittingRef.current = false;
